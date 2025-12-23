@@ -1,3 +1,7 @@
+---
+permalink: ''
+---
+
 Check out my projects!
 
 # Project #1: Smart Garage Door 
