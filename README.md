@@ -1,3 +1,8 @@
-# website
+---
+layout: default
+---
 
-Personal Website
+# Project #1: Smart Garage Door 
+
+TODO: Write blog.
+
