@@ -1,6 +1,4 @@
-Initial information.
-
-# Project #1: Smart Garage Door 
+## Project #1: Smart Garage Door 
 
 TODO: Write blog and/or link to new page. 
 
