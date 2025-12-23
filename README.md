@@ -1,7 +1,6 @@
 Check out my projects!
 
-# Project #1: Smart Garage Door 
+# [Project #1: Smart Garage Door](./posts/smart_home_custom_garage_door.md) 
 
-TODO: Write blog and/or link to new page. 
-[Check it out](./posts/smart_home_custom_garage_door.md)
+TODO: Copy intro once I have it.
 
