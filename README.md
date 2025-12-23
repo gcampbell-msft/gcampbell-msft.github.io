@@ -1,5 +1,5 @@
 ---
-permalink: ''
+permalink: '/'
 ---
 
 Check out my projects!
