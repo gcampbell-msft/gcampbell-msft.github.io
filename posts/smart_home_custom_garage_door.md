@@ -1,5 +1,5 @@
 ---
-layout: page
+layout: default
 title: Smart Home & Custom Smart Garage Door Opener
 permalink: /smart-garage-door/
 ---
