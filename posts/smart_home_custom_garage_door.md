@@ -24,3 +24,8 @@ Hardware setup
 Connecting to the Home Assistant setup. 
 
 Diagnosing issue where manual garage door remote stopped working!
+
+
+--
+
+[back](../README.md)
