@@ -12,29 +12,27 @@ This journey started from a desire to set up and host my own smart-home setup, m
 
 ## Initial "Smart Home" Research
 
-To start out this journey, I knew that I needed to first set up *some* type of Smart Home system. This would be a pre-requisite to creating my own custom smart garage door opener, which was where this project started!
+To start out this journey, I knew that I needed to first set up *some* type of smart home system. This was a pre-requisite to creating my own custom smart garage door opener, which was where this project started!
 
-Early on, I realized that there were lots of popular open source home automation systems already on the market that I could utilize: [Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/), and more. After a quick comparison, I decided on Home Assistant. This decision was largely based on the high-lvel of open source support for it, and the option to host it on a Raspberry Pi, which was a device I'd been wanting to tinker with as well. 
+Early on, I realized that there were lots of popular open source home automation systems already on the market that I could utilize: [Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/), and more. After a quick comparison, I **decided on Home Assistant**. This decision was largely based on the high-lvel of open source support for it, and the option to host it on a Raspberry Pi, which was a device I'd been wanting to tinker with as well. 
 
 ## Setting up Home Assistant
 
 To begin setting up Home Assistant, I purchased a [Respberry Pi kit](https://www.amazon.com/dp/B0D95QBKJ4?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_2&th=1) that I could flash Home Assistant on. Thankfully, Home Assistant had a [great tutorial](https://www.home-assistant.io/installation/raspberrypi) for how to set up Home Assistant on a Pi, and I didn't have any issues with the initial set-up.
 
-After Home Assistant booted up, I was able to create an account and voila! I had a Smart Home set up that I could connect devices to. Thanks to Home Assistant's ability to automatically find available devices, I was able to immediately start adding devices like my front door lock. 
+After Home Assistant booted up, I was able to create an account and voila! I had a smart home set up that I could connect devices to.
 
 ## Developing a custom smart garage door opener. 
 
-Now that I had the Smart Home network set up, it was time to start developing my custom smart garage door opener!
+Now that I had the smart home network set up, it was time to start developing my custom smart garage door opener!
 
 ### Defining the requirements
 
-First, I needed to define what I wanted from my system. I wanted a small and easy to onboard/work with micro-controller for fast development and for it to be non-obstructive when mounted. The smart garage door 
-
-To start, my self-defined reqiurements were to use a small microcontroller so that it would be low-profile when mounted. The opener needed to be able to *at least* sense if the garage door is closed or not, as well as simulate a button press to open or close the garage door.
+To start, my self-defined reqiurements were to use a small microcontroller so that it would be low-profile when mounted. At a base level, the opener needed to be able to *at least* sense if the garage door is closed or not, as well as simulate a button press to open or close the garage door.
 
 #### Wait, How do you simulate pressing the garage door button?
 
-Every day, before I leave the house, I walk into the garge, press the button on the wall to open the garage door, and then get into my car to leave. BUT, how did that actually work? How did pressing the garage door button **ACTUALLY** open the garage door? 
+Every day, before I leave the house, I walk into the garge, press the button on the wall to open the garage door, and then get into my car to leave. BUT, how did that actually work? How did pressing the garage door button **ACTUALLY** make the garage door open? 
 
 In short, when you look at how your garage door is set up, you will see some small wires tracking from the garage door button to 2 screws on the garage door. When the button is presses, it closes the circuit and sends a signal to the garage door telling it to start the motor, which will run for a set amount of time, pulling the garage door belt, and therefore opening the door. 
 
@@ -64,7 +62,7 @@ To sense whether the garage door was open or not, I needed some sort of sensor t
 
 As discussed above, to simulate a button press, we need to close the circuit between two specific screws on the garage door for a short amount of time to open/close the garage door. To do this, we can use a [relay](https://www.amazon.com/dp/B07XGZSYJV?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_1)! By sending a digital signal to the relay, it will close the circuit of the input wires. We can wire the garage door screws to the relay and control it via our software!
 
-> One important thing to remember is the voltage input that is needed for the switch. One mistake I made here was accidentally buying switches that needed 5V, while the NodeMCU didn't have a 5V pin output! I had to eventually realize this and switch to the smaller 3v3 relays that would still work for the garage.
+> One important thing to remember is what voltage input is needed for the switch. One mistake I made here was accidentally buying switches that needed 5V, while the NodeMCU didn't have a 5V pin output! I had to eventually realize this and switch to the smaller 3v3 relays that would still work for the garage.
 
 ### Designing the system
 
@@ -93,7 +91,7 @@ Diagnosing issue where manual garage door remote stopped working!
 
 #### Final Schematic
 
-TODO: Insert final schematic image? 
+![schematic](schematic.png)
 
 ### Further work
 
