@@ -66,37 +66,170 @@ As discussed above, to simulate a button press, we need to close the circuit bet
 
 ### Designing the system
 
-#### Software
+Now that we've selected the hardware and have a rough plan for how to utilize them, we can design the system!
 
-TODO: Go over how we share the state with system, how we connect the wifi, starting with arduino, etc. 
+#### Software design
 
-TODO: Creating a MQTT driven custom smart garage door opener. 
+The core components that need to be designed are the following:
 
-- Started with Arduino
-- Then, converted to ESP8266_RTOS_SDK
+1. Communication from the opener to the HA system.
+2. Reading sensor values to assess the state of the garage door. 
+3. Triggering simulated button presses
+4. A state machine for the state of the garage door. 
+
+#2 and #3 are relatively simple, as they simply require reading in/writing out digital values from/to digital pins on the micro-controller. Specifically for #3, simulating a button press would involve turning on the relay and quickly (50 ms later) turning off the relay. 
+
+##### MQTT
+
+For #1, communication from the opener to the HA system, there is theoretically many possibilities. However, I was already familiar with MQTT, which stands for Messaeg Queuing Telemetry Transport. Additionally, because the ESP already has built-in WiFi capabilities, this was a simple protocol to onboard to, and it's commonly used across the industry to communicate between devices. An added plus is that you can set up MQTT brokers and subscribers to require username and password authentication!
+
+##### System State Machine
+
+Designing the state machine took a little bit of time to diagnose and confirm some of the edge cases, but the overall states are the following: 
+
+- Open
+- Closed
+- Opening
+- Closing
+- Unknown
+
+Some of them are self-explanatory, but some are not. For example, when would the "Unknown" state occur? For my garage door, the door takes around 12 seconds to close. Therefore, I created a 15 second timer that would essentially force a change into the Unknown State if the door isn't in the expected state in time. However, in my system, this exposes one assumption that is important to consider. I only am using one sensor in this system that reports when the door is **closed**. However, there is not a sensor to explicitly detect when the door is fully open. Therefore, when the state transitions from Closed->Opening->Open, this is primarily based on waiting for the 15 seconds and if we haven't detected any other issues, we assume it's fully open. 
+
+Below is a diagram of the entire state machine.
+
+TODO: Insert state machine diagram.
 
 #### Circuit design
 
-TODO: Insert images of reed switch set up, the relay connected to the screws, maybe the 
+Overall (at first glance), this circuit design was *very* simple. I would only need the following:
+
+- A reed switch. 1 wire connected to GND and 1 connected to a digital input pin on the ESP.
+- A relay, connected to the garage door opener. The flow would be the following:
+  - 1 wire from GND to relay GND
+  - 3v3 to power input of relay
+  - Digital output control to relay control. 
+  - The 2 screw terminals of interest from the garage door opener to the relay inputs. 
+
+These are the only external components that we would need to monitor the state of the garage door, and to control opening/closing the garage. Right?? (*Foreshadowing to an issue I hit and solved, keep reading*)
+
+### Let's get building!
+
+Now, I was ready to write the code and set up the circuit! As a way to quickly get set up and iteratoe on this project, I started out using Arduino. Arduino already has libraries for MQTT, WiFi, and for general digital pin controls. Also, there was [easy documentation for how to build and flash for the ESP device available online](https://projecthub.arduino.cc/PatelDarshil/getting-started-with-nodemcu-esp8266-on-arduino-ide-b193c3). The libraries I used are the following
+
+- MQTT: [PubSubClient](https://docs.arduino.cc/libraries/pubsubclient/)
+- WiFi: [ESP8266WiFi.h](https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/readme.html)
+
+Thanks to the design work listed above, this work was relatively straight forward to work through. I went piece by piece, implementing first the connections to WiFi and MQTT, then implementing and testing the reading of the reed switch, the controlling of the relay, and then the state machine!
+
+> One extremely useful tool to help test quickly with MQTT was the [MQTTool](https://apps.apple.com/us/app/mqttool/id1085976398). This made testing with MQTT incredibely quick and easy, without having to worry about any Home Assistant setup available or any other more complex set up yet.
 
 ### Connecting the custom device to Home Assistant
 
-TODO: How do we connect this custom device to home assistant? 
+Now that I had been able to iterate through the state machine with the device set up in my "lab" (my home office), I was ready to integrate the device with Home Assistant! At the time, I thought that this would make it much easier to test once I connected the device to the garage, as I would *hopefully* only have to press buttons rather than typing out MQTT commands every time. 
+
+To begin, I read many blogs and channels of people who have integrated MQTT devices with HA. However, I actually found that the [HA documentation](https://www.home-assistant.io/integrations/mqtt) for these kinds of devices proved to be the most helpful.
+
+#### What is "MQTT discovery"? 
+
+The first roadblock that I encountered was understanding what "MQTT discovery" was. After some investigation, I found that this is a way that Home Assistant supports adding MQTT devices to HA. This method requires the MQTT device to follow the discovery protocol such that there is minimal setup required on the HA side. There is in-depth documentation [here](https://www.home-assistant.io/integrations/mqtt#mqtt-discovery). In short, this allows for the device to propose itself as a discoverable device to the HA. Because I was new to the MQTT + HA ecosystem, I opted to go with what I viewed as the simpler, more [straightforward yaml configuration from the HA side](https://www.home-assistant.io/integrations/mqtt#manual-configured-mqtt-items). In the future, I'd like to investigate the auto-discovery more. 
+
+MQTT in HA supports *lots* of different devices, but the one that most closely matches a garage door, is a [cover](https://www.home-assistant.io/integrations/cover.mqtt/). The yaml configuration allows you to specify payloads for the availability of the device, commands to open and close, as well as the state. After some trial and error, I actually ended up with the following yaml to define the *cover*
+
+```yaml
+cover:
+  - name: Garage Door
+    unique_id: "garage_door"
+    availability:
+      - topic: "garage_door/availability"
+        payload_available: "available"
+        payload_not_available: "unavailable"
+    command_topic: "garage_door/buttonpress"
+    payload_stop:
+    state_topic: "garage_door/status"
+    device:
+      name: "Smart Garage Door Opener"
+      via_device: "esp8266"
+      model: "Arduino Mega"
+      manufacturer: "Arduino"
+      identifiers: "arduino_garage_door_opener"
+```
+
+As an optional choice, I also defined an explicit *sensor* for the state of the garage door. This allowed me to set up some widgets on my phone. If you're interested in how I set this up, [let me know](https://github.com/gcampbell-msft/website/issues/new)! The *sensor* yaml looked like this: 
+
+```yaml
+sensor:
+  - name: Garage Door Sensor
+    availability:
+      - topic: "garage_door/availability"
+        payload_available: "available"
+        payload_not_available: "unavailable"
+    state_topic: "garage_door/status"
+    unique_id: "garage_door_sensor"
+    force_update: true
+    device_class: enum
+    options:
+      - open
+      - closed
+      - opening
+      - closing
+```
+
+After setting these up, I was able to see them in the HA UI!
+
+TODO: Insert image of the home assistant set-up. 
+
+Now that I had HA setup and had tested the operation of my custom device, it was time to hook it up to the garage door. While it took some time and I had to purchase some longer wire, within a couple of days I got the device connected and was able to test that it did, in fact, open and read the state of the garage door, pretty exciting stuff at this point!
 
 ### UH OH! Our first major issue!
 
-Diagnosing issue where manual garage door remote stopped working!
+After connecting the device to the garage door and confirming it worked, I was giddy with excitement and I went on about my day. The next day, I went on about my normal routine, getting ready for the day, opening the door to the garage, opening the garage door with the garage door button, and getting in my truck. I pulled out of the garage and, as usual, reached up to press the button on my garage door remote to close the door, and..... **nothing happened**. So, I pressed the button again. Still nothing. 
+
+Uh oh. 
+
+I pulled back into the garage, grabbed my garage door fab, and started testing the garage door fab from various distances away from the garage. I found that the garage door fab was only working when I was inside the garage, or barely outside of it! Well, quite obviously, that's not good.
+
+This kicked off what turned into a couple of weeks of a vicious cycle of my mind racing to brainstorm what the issue could be, testing out the garage door, finding that it was still having issues, getting frustrated, ignoring the project for some time, repeat. Could it be EMI (electro-magnetic interference)? RFI (Radio frequency interference)? Could it be a bouncy signal coming from my sensor? A bouncy signal to the relay causing wierd states in the garage door software?
+
+Unfortunately, I had got ridden of some of my hardware such as oscilloscopes and other testing equipment a couple of years ago, so without spending more money, I was stuck in a loop of trial and error that was very frustrating, and I wouldn't recommend to anyone. After much brainstorming, talking with colleagues and friends, and testing, I had a couple of possible solutions, ferrite beads that could hopefully smooth out signals over long cables, relocating the garage door micro-controller farther away from the garage door opener to reduce EMF, etc.
 
 #### Resolution
 
+Finally, after having relocated the device to my attic (with long cables to connect to the garage door opener), I had the idea to add a capacitor in parallel with the reed switch. **VOILA!** The garage door remote range returned to normal! I was elated and the garage door could officially be used regularly. 
+
+While I'd love to say that I'm 100% confident in why this solution finally worked, I can't fully say this without having tools to test and confirm. However, I believe that between relocating the device to the attic and adding a capacitor to the long running-cables with the reed switch, I eliminated possible sources of RFI and EMI which returned the range to normal. Additionally, the capacitor reduced possibilies for bouncy signals that could cause innaccuracies in my sensor readings and therefore confusion in the state machine. This is especially likely the answer due to the fact that it is a reed sensor, which inherently creates a magnetic field when the coils are energized. 
+
 #### Final Schematic
+
+Now that the major issue we ran into is solved, we've arrived at the final schematic!
 
 ![schematic](schematic.png)
 
-### Further work
+### How could I access HA remotely? 
 
-TODO: Insert possible further work, like adding a sensor for explicitly measuring when it's fully open. 
+TODO: I think it's best to not spend too much time on this, mention the concepts and the way I set it up, but mention that I might write a separate blog on this. 
 
+## Upgrade to raw C++ plus ESP8266_RTOS_SDK
+
+TODO: Discuss how I wanted to migrate away from Arduino, etc. 
+
+## Takeaways
+
+- Give yourself grace. It's very easy to set lofty goals for side projects like this and get discouraged easily. 
+- Don't be afraid to take time away from a side project. Similar to anything we do, a break can help you think of solutions that you might not get when you're frustrated by constantly thinking and working on it. 
+- Take it piece by piece! For example, in this project, while I struggled at times, I did my best to focus on one part at a time, the software, the hardware, the Home Assistant setup, etc. 
+
+## More ideas!
+
+This was a really fun project and there are some further ideas that maybe at some point I'll pick up!
+
+- Investigate Device discovery rather than yaml configuration.
+- Add another sensor that can sense if the garage door is *fully* open. 
+- Add sensors or cameras to detect if our vehicles are in the garage. 
+- Automatically open the garage when a vehicle arrives home. 
+
+## Links
+
+If you want to check out this project, it's on [GitHub](https://github.com/gcampbell-msft/smart-garage-door-opener)!
 
 --
 
