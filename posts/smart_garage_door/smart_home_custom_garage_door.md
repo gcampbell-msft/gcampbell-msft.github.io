@@ -4,7 +4,10 @@ title: Smart Home & Custom Smart Garage Door Opener
 description: Documenting my journey building a custom smart garage door opener integrated with Home Assistant
 permalink: /smart-garage-door/
 date: 2025-12-24
+projectGitHub: https://github.com/gcampbell-msft/smart-garage-door-opener
 ---
+
+December, 2025
 
 ## Introduction
 
@@ -36,8 +39,6 @@ Every day, before I leave the house, I walk into the garge, press the button on 
 
 In short, when you look at how your garage door is set up, you will see some small wires tracking from the garage door button to 2 screws on the garage door. When the button is presses, it closes the circuit and sends a signal to the garage door telling it to start the motor, which will run for a set amount of time, pulling the garage door belt, and therefore opening the door. 
 
-TODO: Insert images of the screws
-
 The key component to simulate here is the closing of the circuit to signal to the motor to start. Thankfully, on my garage door opener, access to the screws mentioned above is easy and therefore we can easily test this theory! 
 
 > NOTE: For those following along, proceed with some caution on the following steps. 
@@ -56,13 +57,27 @@ At first, I went for the *esp-01* and made some initial progress with it. Howeve
 
 #### Sensor
 
-To sense whether the garage door was open or not, I needed some sort of sensor that could mount to the frame of the garage and the garage door to indicate if it was closed. To do this, I found that a [magnetic reed switch](https://www.amazon.com/dp/B0BCYHBKVF?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_4) would do the trick. 
+To sense whether the garage door was open or not, I needed some sort of sensor that could mount to the frame of the garage and the garage door to indicate if it was closed. To do this, I found that a [magnetic reed switch](https://www.amazon.com/dp/B0BCYHBKVF?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_4) would do the trick.
+
+<img src=./ReedSwitch.jpg alt="Reed Switch" width=200>
+
+Sneak peak of the final set-up of the reed switch!
 
 #### Simulate button press
 
 As discussed above, to simulate a button press, we need to close the circuit between two specific screws on the garage door for a short amount of time to open/close the garage door. To do this, we can use a [relay](https://www.amazon.com/dp/B07XGZSYJV?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_1)! By sending a digital signal to the relay, it will close the circuit of the input wires. We can wire the garage door screws to the relay and control it via our software!
 
+Here is an image of the terminals that needed to be connected in order to simulate a button press. These terminals were mentioned as well in [this section about how to simulate a button press](#wait-how-do-you-simulate-pressing-the-garage-door-button). Also, the yellow wires are a sneak peak! They are connected to the relay, keep reading!
+
+<img src=./terminals.jpg alt=Terminals width=200>
+
+The two screws on the left are the screws controlling the operation.
+
 > One important thing to remember is what voltage input is needed for the switch. One mistake I made here was accidentally buying switches that needed 5V, while the NodeMCU didn't have a 5V pin output! I had to eventually realize this and switch to the smaller 3v3 relays that would still work for the garage.
+
+#### 1 uF capacitor
+
+> Sneak peak! Keep reading for when this comes into play.
 
 ### Designing the system
 
@@ -97,7 +112,7 @@ Some of them are self-explanatory, but some are not. For example, when would the
 
 Below is a diagram of the entire state machine.
 
-TODO: Insert state machine diagram.
+![State machine](./GarageDoorStateMachine.png)
 
 #### Circuit design
 
@@ -176,7 +191,7 @@ sensor:
 
 After setting these up, I was able to see them in the HA UI!
 
-TODO: Insert image of the home assistant set-up. 
+![Garage Door Cover Home Assistant](./GarageDoorCoverHA.png) 
 
 Now that I had HA setup and had tested the operation of my custom device, it was time to hook it up to the garage door. While it took some time and I had to purchase some longer wire, within a couple of days I got the device connected and was able to test that it did, in fact, open and read the state of the garage door, pretty exciting stuff at this point!
 
@@ -206,11 +221,29 @@ Now that the major issue we ran into is solved, we've arrived at the final schem
 
 ### How could I access HA remotely? 
 
-TODO: I think it's best to not spend too much time on this, mention the concepts and the way I set it up, but mention that I might write a separate blog on this. 
+This works great, but one of the main reasons I started this project was because we constantly would be pulling out of the neighborhood, and then think, "Did we actually close the garage?". Since HA is, by default, only accessible from the local network, this smart garage system didn't actually help us in this situation. 
 
-## Upgrade to raw C++ plus ESP8266_RTOS_SDK
+There are various options for how to create a remote connection to something like this. I could set up port forwarding, but this may have security risks, there are paid services to host these types of things, but I didn't care to pay anything, or we could find another option.
 
-TODO: Discuss how I wanted to migrate away from Arduino, etc. 
+This is where [Tailscale](https://tailscale.com/) comes to the rescue! There is even [official documentation from Home Assistant](https://www.home-assistant.io/integrations/tailscale/) on how to utilize Tailscale for this purpose. Tailscale allows you to create a VPN that you control, and within this VPN you can add specific devices to allow them to talk to each other. In my case, I wanted to be able to access my Raspberry Pi (where HA is hosted) from both my phone and my wife's phone. The free tier of Tailscale supports up to 3 users and 100 devices (at the time of writing), which allowed me to do exactly what I wanted, which allowed for **remote connection**. 
+
+Now, when we forget to close the garage door, I can do it from my phone!
+
+If you're interested in the other ways I set up access to HA remotely, such as through my car play, widgets on my home screen on my iPhone, etc, [let me know](https://github.com/gcampbell-msft/website/issues/new)! and I can go into more depth in a separate blog. 
+
+## Upgrade to raw C++ with ESP8266_RTOS_SDK
+
+After having this set up and working how I liked for a couple months, I had an itch to make this feel more like the raw C++ I was used to writing from my college days. To do this, I wanted to write in raw C++, rather than using the Arduino wrappers. 
+
+To do this, I originally wanted to utilize [esp-idf](https://idf.espressif.com/), but I quickly found that esp-idf doesn't officially support ESP8266 boards, as they are no longer in development. The next best fallback option was to utilize the [ESP8266_RTOS_SDK](https://github.com/espressif/ESP8266_RTOS_SDK/tree/master). Thankfully, there was a [simple to follow guide](https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/get-started/windows-setup.html) that helped me get the proper toolchain set up and quickly start building with various [samples](https://github.com/espressif/ESP8266_RTOS_SDK/tree/master/examples), before converting my Arduino code to C++ with the ESP8266 RTOS SDK. 
+
+Converting to using raw C++ and this SDK provided a couple of advantages:
+
+1. I was excited about the conversion, so it was fun to do!
+2. Allowed for more use of FreeRTOS and other commonly used libraries across the industry. This can primarily be seen in the use of queues to handle events. 
+3. More event-driven implementation, rather than polling.
+
+Feel free to take a look at the code [here](https://github.com/gcampbell-msft/smart-garage-door-opener)!
 
 ## Takeaways
 
@@ -233,4 +266,4 @@ If you want to check out this project, it's on [GitHub](https://github.com/gcamp
 
 --
 
-[back](../README.md)
+[back](../../README.md)
