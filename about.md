@@ -8,5 +8,3 @@ permalink: /about/
 ## Coming soon!
 
 --
-
-[back to homepage](./README.md)
