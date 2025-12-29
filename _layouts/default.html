@@ -12,6 +12,21 @@
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
     {% include head-custom.html %}
     <style>
+      .home-nav {
+        position: absolute;
+        top: 1rem;
+        left: 1.5rem;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .home-nav:hover {
+        color: white;
+      }
+      .home-nav::before {
+        content: "← ";
+      }
       .profile-image {
         position: absolute;
         top: 2rem;
@@ -24,6 +39,11 @@
         object-fit: cover;
       }
       @media (max-width: 768px) {
+        .home-nav {
+          font-size: 0.85rem;
+          left: 1rem;
+          top: 0.75rem;
+        }
         .profile-image {
           width: 70px;
           height: 70px;
@@ -37,6 +57,9 @@
     <a id="skip-to-content" href="#content">Skip to the content.</a>
 
     <header class="page-header" role="banner">
+      {% unless page.url == "/" or page.url == "/index.html" %}
+        <a href="{{ '/' | relative_url }}" class="home-nav">Home</a>
+      {% endunless %}
       <a href="{{ '/about/' | relative_url }}">
         <img src="{{ '/assets/images/profile.jpg' }}" alt="{{ 'Profile' }}" class="profile-image">
       </a>
