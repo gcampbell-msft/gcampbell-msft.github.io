@@ -1,8 +1,12 @@
 ---
 layout: default
 title: About me!
-description: A little about me
+description: 
 permalink: /about/
 ---
 
-## About.md
+## Coming soon!
+
+--
+
+[back to homepage](./README.md)
