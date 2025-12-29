@@ -132,19 +132,21 @@ Now, I was ready to write the code and set up the circuit! As a way to quickly g
 - MQTT: [PubSubClient](https://docs.arduino.cc/libraries/pubsubclient/)
 - WiFi: [ESP8266WiFi.h](https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/readme.html)
 
-Thanks to the design work listed above, this work was relatively straight forward to work through. I went piece by piece, implementing first the connections to WiFi and MQTT, then implementing and testing the reading of the reed switch, the controlling of the relay, and then the state machine!
+Thanks to the design work listed above, this work was relatively straight forward. I went piece by piece, implementing first the connections to WiFi and MQTT, then implementing and testing the reading of the reed switch, the controlling of the relay, and then the state machine!
 
 > One extremely useful tool to help test quickly with MQTT was the [MQTTool](https://apps.apple.com/us/app/mqttool/id1085976398). This made testing with MQTT incredibely quick and easy, without having to worry about any Home Assistant setup available or any other more complex set up yet.
 
 ### Connecting the custom device to Home Assistant
 
-Now that I had been able to iterate through the state machine with the device set up in my "lab" (my home office), I was ready to integrate the device with Home Assistant! At the time, I thought that this would make it much easier to test once I connected the device to the garage, as I would *hopefully* only have to press buttons rather than typing out MQTT commands every time. 
+Now that I had been able to iterate through the state machine with the device set up in my "lab" (my home office), I was ready to integrate the device with Home Assistant! I thought that this would make it much easier to test once I connected the device to the garage, as I would *hopefully* only have to press buttons rather than typing out MQTT commands every time. 
 
 To begin, I read many blogs and channels of people who have integrated MQTT devices with HA. However, I actually found that the [HA documentation](https://www.home-assistant.io/integrations/mqtt) for these kinds of devices proved to be the most helpful.
 
 #### What is "MQTT discovery"? 
 
 The first roadblock that I encountered was understanding what "MQTT discovery" was. After some investigation, I found that this is a way that Home Assistant supports adding MQTT devices to HA. This method requires the MQTT device to follow the discovery protocol such that there is minimal setup required on the HA side. There is in-depth documentation [here](https://www.home-assistant.io/integrations/mqtt#mqtt-discovery). In short, this allows for the device to propose itself as a discoverable device to the HA. Because I was new to the MQTT + HA ecosystem, I opted to go with what I viewed as the simpler, more [straightforward yaml configuration from the HA side](https://www.home-assistant.io/integrations/mqtt#manual-configured-mqtt-items). In the future, I'd like to investigate the auto-discovery more. 
+
+#### MQTT YAML
 
 MQTT in HA supports *lots* of different devices, but the one that most closely matches a garage door, is a [cover](https://www.home-assistant.io/integrations/cover.mqtt/). The yaml configuration allows you to specify payloads for the availability of the device, commands to open and close, as well as the state. After some trial and error, I actually ended up with the following yaml to define the *cover*
 
@@ -257,10 +259,6 @@ This was a really fun project and there are some further ideas that maybe at som
 - Add another sensor that can sense if the garage door is *fully* open. 
 - Add sensors or cameras to detect if our vehicles are in the garage. 
 - Automatically open the garage when a vehicle arrives home. 
-
-## Links
-
-If you want to check out this project, it's on [GitHub](https://github.com/gcampbell-msft/smart-garage-door-opener)!
 
 --
 
